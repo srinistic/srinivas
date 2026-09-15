@@ -43,6 +43,21 @@ for you (or whoever holds the relevant account access) to run directly.
 3. This becomes the source for Page 3 (Bing Ads performance) and one side
    of the blend for the Overview master campaign table
 
+## 5. Connect Zoho CRM (MQL/SQL)
+
+1. Install "Looker Studio Connector for Zoho CRM" (Jivrus Technologies)
+   from the Zoho Marketplace: https://marketplace.zoho.com/app/crm/looker-studio-connector-for-zoho-crm
+2. Authorize it against your Zoho CRM account
+3. In Looker Studio: Add Data Source > find the Jivrus Zoho CRM connector >
+   select the **Leads** module (for MQL) and **Contacts** module (for SQL)
+   as two data sources (or one, if the connector lets you pick fields from
+   both — check its field picker)
+4. Check the free-tier transaction quota against your actual Zoho record
+   volume before relying on it long-term; see their pricing page if you're
+   likely to exceed the trial quota: https://lookerstudio.jivrus.com/pricing
+5. Field-map: Lead "Created Time" and Contact conversion date need to be
+   set as Date fields so they respond to the report's date range control
+
 ## Rollback / off switch
 
 Nothing here touches your live Bing Ads account beyond reading stats — to

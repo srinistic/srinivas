@@ -41,8 +41,11 @@ no pacing, no kill-criteria columns — this table is board-facing only.
 
 **Funnel section:**
 A funnel chart (or 3 scorecards side by side if funnel chart styling looks
-too sparse with only 3 stages): Raw Leads → MQL → SQL, sourced from
-`funnel_raw`. Pending your sheet to confirm exact stage-count logic.
+too sparse with only 3 stages): Raw Leads → MQL → SQL.
+- Raw Leads: sum of conversions across Google Ads + `bing_ads_raw` + GA4 organic
+- MQL: Zoho CRM Leads module (via the Jivrus connector)
+- SQL: Zoho CRM Contacts module (post-conversion)
+Aggregate only, not filterable by campaign (see sheet-schema.md).
 
 ---
 
@@ -102,6 +105,5 @@ wrapper.)
 
 ## Open items before this can be built end-to-end in the UI
 
-1. Exact active campaign names in Google Ads & Bing Ads (Step 0)
-2. Funnel sheet structure — per-campaign or aggregate (Step 0)
-3. GA4 conversion event name for "lead" if Organic Leads is to be a real number and not just sessions
+1. Exact active campaign names in Google Ads & Bing Ads (not blocking, send whenever)
+2. GA4 conversion event name for "lead" (needed for Raw Leads and Page 4's Organic Leads)

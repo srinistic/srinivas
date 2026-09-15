@@ -20,20 +20,36 @@ Studio can blend them by `date` + `campaign` without per-source special-casing.
 Grain: one row per campaign per day. Re-runs upsert by `date + campaign`, so
 this sheet is safe to backfill or re-trigger without creating duplicates.
 
-## `funnel_raw` (to be defined once you share the funnel sheet)
+## Raw Leads (funnel stage 1)
 
-Placeholder shape — will confirm/adjust against your actual sheet:
+No new pipeline — this is a sum of conversions already flowing through
+sources we're already connecting:
 
-| column     | type   | notes                                          |
-|------------|--------|--------------------------------------------------|
-| date       | date   | date the lead was created / stage changed      |
-| campaign   | text   | campaign name, **must match the platform's exact name** so it joins to `bing_ads_raw` / Google Ads data — only fill this in if the funnel is tracked per-campaign; leave blank/omit if it's aggregate-only |
-| stage      | text   | `Raw Lead` / `MQL` / `SQL`                     |
-| count      | number | if the sheet is already aggregated, or omit and count rows if it's one-row-per-lead |
+`Raw Leads = Google Ads conversions + bing_ads_raw conversions + GA4 organic conversions`
 
-Open question (from the roadmap): confirm whether your funnel sheet is
-per-campaign or aggregate-only — that determines whether the Overview funnel
-can be filtered by campaign or is always the same three numbers.
+GA4's conversion event for "lead" still needs to be confirmed (pending)
+before the organic term is wired up.
+
+## MQL / SQL — via Zoho CRM (not a sheet)
+
+No custom pipeline needed here. MQL/SQL live in Zoho CRM itself as the
+system of record, so we connect to it directly:
+
+- **Connector:** "Looker Studio Connector for Zoho CRM" (Jivrus Technologies,
+  Zoho Marketplace) — free trial tier (200-transaction one-time quota, check
+  paid pricing before/at rollout if volume needs it long-term)
+- **MQL** = count of records in the Zoho **Leads** module (a record entering
+  Zoho as a Lead is the MQL event)
+- **SQL** = count of records in the Zoho **Contacts** module attributable to
+  lead conversion (a Lead converting to Contact is the SQL event)
+- **Grain:** aggregate only — confirmed no campaign/source breakdown is
+  tracked on these records today, so the funnel section is 3 fixed numbers
+  per date range, not filterable by campaign. (If Zoho Leads carry a "Lead
+  Source" field, per-channel funnel breakdown becomes possible later — worth
+  a quick check, but out of scope for V1.)
+- **Date filtering:** use the Lead's Created Time / Contact's conversion
+  date, so this responds to the report's date range control like everything
+  else on Overview.
 
 ## Master campaign table (Overview page)
 
