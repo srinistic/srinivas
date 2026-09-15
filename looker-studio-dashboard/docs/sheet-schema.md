@@ -22,14 +22,14 @@ this sheet is safe to backfill or re-trigger without creating duplicates.
 
 ## Raw Leads (funnel stage 1)
 
-`Raw Leads = Google Ads conversions + bing_ads_raw conversions + Zoho CRM Leads (Lead Source = "Organic")`
+`Raw Leads = Google Ads conversions + bing_ads_raw conversions + Zoho CRM Leads (Lead Source = "Direct")`
 
 The organic term comes from Zoho, not GA4: GA4's conversion event fires on
 every form submission including internal test submissions, which would
 inflate the count. Zoho's Lead Source field is curated at lead-creation/
-qualification time, so it doesn't carry that noise. Pending: the exact
-field name + value as it appears in your Zoho instance (e.g. confirm
-whether it's literally `"Organic"` or a different label).
+qualification time, so it doesn't carry that noise. Confirmed: organic
+leads are tagged `Lead Source = "Direct"` in your Zoho instance (not
+literally "Organic" — filter on this exact value).
 
 Note: this is separate from the **Organic Traffic** scorecard (GA4
 sessions, Organic Search channel) on Overview/Page 4 — that's a volume

@@ -42,7 +42,7 @@ no pacing, no kill-criteria columns — this table is board-facing only.
 **Funnel section:**
 A funnel chart (or 3 scorecards side by side if funnel chart styling looks
 too sparse with only 3 stages): Raw Leads → MQL → SQL.
-- Raw Leads: Google Ads conversions + `bing_ads_raw` conversions + Zoho CRM Leads (Lead Source = "Organic")
+- Raw Leads: Google Ads conversions + `bing_ads_raw` conversions + Zoho CRM Leads (Lead Source = "Direct")
 - MQL: Zoho CRM Leads module (via the Jivrus connector)
 - SQL: Zoho CRM Contacts module (post-conversion)
 Aggregate only, not filterable by campaign (see sheet-schema.md).
@@ -106,7 +106,6 @@ wrapper.)
 ## Open items before this can be built end-to-end in the UI
 
 1. Exact active campaign names in Google Ads & Bing Ads (not blocking, send whenever)
-2. Exact Zoho "Lead Source" field/value for organic leads (needed for Raw Leads)
-3. GA4 conversion event name for "lead" — only still needed if Page 4 (Organic
+2. GA4 conversion event name for "lead" — only needed if Page 4 (Organic
    performance) should show an "Organic Leads" number pulled straight from GA4
-   as well; not required for the Overview Raw Leads total anymore
+   as well; not required for the Overview Raw Leads total (that's Zoho-sourced now)
