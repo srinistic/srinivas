@@ -14,8 +14,14 @@ function main() {
   var rows = [];
   var runDate = statDate(DATE_RANGE);
 
+  // NOTE: not filtering by status here. Microsoft's isEnabled()/isPaused()
+  // methods returned false for every campaign in testing (a known mismatch
+  // with their docs, not a bug in this script), so a status filter can't be
+  // trusted right now. As of this writing the account has exactly 3
+  // campaigns total (Insurance Verification AI, Claims Processing AI, Voice
+  // AI Agent), all of which are the real active set per the budget sheet -
+  // if paused/ended campaigns get added to this account later, revisit this.
   var campaignIterator = AdsApp.campaigns()
-    .withCondition("Status = ENABLED")
     .forDateRange(DATE_RANGE)
     .get();
 
