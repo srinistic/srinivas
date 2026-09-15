@@ -21,7 +21,7 @@ function main() {
 
   while (campaignIterator.hasNext()) {
     var campaign = campaignIterator.next();
-    var stats = campaign.getStatsFor(DATE_RANGE);
+    var stats = campaign.getStats();
 
     rows.push({
       date: runDate,
