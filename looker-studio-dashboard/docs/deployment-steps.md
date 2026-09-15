@@ -62,16 +62,24 @@ does.
    - **Trigger:** Schedule — daily (pick a time after your day's Zoho
      activity settles, e.g. late evening or early next morning)
    - **Action 1:** Zoho CRM — search/list records — module **Leads**,
-     criteria: `Created_Time` = today (or yesterday, matching whatever day
-     you're logging), then a **count** step (Flow's "Count records" or a
-     custom function summing the search results)
-   - **Action 2:** same for the **Contacts** module, filtered to records
-     converted that day (check what field marks conversion date in your
-     Zoho setup — likely `Modified_Time` on conversion, or a specific
-     "Converted Time" field if enabled)
+     criteria: `Created_Time` **is within that single day** — i.e.
+     `Created_Time >= start of that day AND Created_Time < start of the
+     next day`, then a **count** step (Flow's "Count records" or a custom
+     function summing the search results)
+   - **Action 2:** same for the **Contacts** module — Zoho's standard Lead
+     Conversion creates a brand-new Contact record at the moment of
+     conversion, so `Contacts.Created_Time` (same same-day window as above)
+     is a valid SQL date — confirmed this matches your setup
    - **Action 3 & 4:** Google Sheets — Add Row — write `[date, "MQL", <lead count>]`
      and `[date, "SQL", <contact count>]` into `zoho_funnel_raw` (connect
      your Google account when prompted)
+
+   **Critical:** the criteria must be a same-day window (today only), not
+   "since account creation" or any fixed start date. This sheet is daily
+   rows that Looker Studio *sums* over whatever range someone filters to —
+   if a row's count is cumulative instead of that day's count alone,
+   filtering to a date range would overcount by adding cumulative totals
+   together.
 3. Test-run the Flow manually once, confirm both rows land correctly in
    the Sheet
 4. Turn the Flow on / activate the schedule
