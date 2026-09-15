@@ -35,26 +35,30 @@ Note: this is separate from the **Organic Traffic** scorecard (GA4
 sessions, Organic Search channel) on Overview/Page 4 — that's a volume
 metric, not a lead count, and is unaffected by this change.
 
-## MQL / SQL — via Zoho CRM (not a sheet)
+## `zoho_funnel_raw` (written by a Zoho Flow, MQL/SQL)
 
-No custom pipeline needed here. MQL/SQL live in Zoho CRM itself as the
-system of record, so we connect to it directly:
+Rather than a paid Looker Studio connector (Jivrus's free tier is a
+one-time 200-transaction trial, not ongoing), this uses **Zoho Flow**
+(Zoho's own automation tool) on a free plan — 100 tasks/month, well within
+what a daily sync needs (~30/month). A scheduled Flow reads Zoho CRM and
+writes counts into a Sheet using Zoho Flow's native Google Sheets action;
+Looker Studio reads that Sheet exactly like `bing_ads_raw`.
 
-- **Connector:** "Looker Studio Connector for Zoho CRM" (Jivrus Technologies,
-  Zoho Marketplace) — free trial tier (200-transaction one-time quota, check
-  paid pricing before/at rollout if volume needs it long-term)
-- **MQL** = count of records in the Zoho **Leads** module (a record entering
-  Zoho as a Lead is the MQL event)
-- **SQL** = count of records in the Zoho **Contacts** module attributable to
-  lead conversion (a Lead converting to Contact is the SQL event)
+| column  | type   | notes                                             |
+|---------|--------|-----------------------------------------------------|
+| date    | date   | the day these counts are for                       |
+| stage   | text   | `MQL` or `SQL`                                     |
+| count   | number | count of Leads created that day (MQL) / Contacts converted that day (SQL) |
+
+- **MQL** = count of records entering Zoho's **Leads** module that day
+- **SQL** = count of Leads converting to **Contacts** that day
 - **Grain:** aggregate only — confirmed no campaign/source breakdown is
   tracked on these records today, so the funnel section is 3 fixed numbers
   per date range, not filterable by campaign. (If Zoho Leads carry a "Lead
   Source" field, per-channel funnel breakdown becomes possible later — worth
   a quick check, but out of scope for V1.)
-- **Date filtering:** use the Lead's Created Time / Contact's conversion
-  date, so this responds to the report's date range control like everything
-  else on Overview.
+- **Date filtering:** set `date` as this source's Date Range Dimension in
+  Looker Studio, same as `bing_ads_raw`.
 
 ## Master campaign table (Overview page)
 

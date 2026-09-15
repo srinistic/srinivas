@@ -49,20 +49,39 @@ for you (or whoever holds the relevant account access) to run directly.
 3. This becomes the source for Page 3 (Bing Ads performance) and one side
    of the blend for the Overview master campaign table
 
-## 5. Connect Zoho CRM (MQL/SQL)
+## 5. Connect Zoho CRM (MQL/SQL) — via Zoho Flow, free
 
-1. Install "Looker Studio Connector for Zoho CRM" (Jivrus Technologies)
-   from the Zoho Marketplace: https://marketplace.zoho.com/app/crm/looker-studio-connector-for-zoho-crm
-2. Authorize it against your Zoho CRM account
-3. In Looker Studio: Add Data Source > find the Jivrus Zoho CRM connector >
-   select the **Leads** module (for MQL) and **Contacts** module (for SQL)
-   as two data sources (or one, if the connector lets you pick fields from
-   both — check its field picker)
-4. Check the free-tier transaction quota against your actual Zoho record
-   volume before relying on it long-term; see their pricing page if you're
-   likely to exceed the trial quota: https://lookerstudio.jivrus.com/pricing
-5. Field-map: Lead "Created Time" and Contact conversion date need to be
-   set as Date fields so they respond to the report's date range control
+Uses Zoho Flow's free plan (100 tasks/month — a daily sync uses ~30) instead
+of a paid Looker Studio connector, writing into a Sheet the same way Bing
+does.
+
+1. Create a new tab called `zoho_funnel_raw` in the same Sheet used for
+   `bing_ads_raw` (or a new Sheet, your call), with header row:
+   `date, stage, count`
+2. In Zoho Flow (flow.zoho.com), create a new Flow:
+   - **Trigger:** Schedule — daily (pick a time after your day's Zoho
+     activity settles, e.g. late evening or early next morning)
+   - **Action 1:** Zoho CRM — search/list records — module **Leads**,
+     criteria: `Created_Time` = today (or yesterday, matching whatever day
+     you're logging), then a **count** step (Flow's "Count records" or a
+     custom function summing the search results)
+   - **Action 2:** same for the **Contacts** module, filtered to records
+     converted that day (check what field marks conversion date in your
+     Zoho setup — likely `Modified_Time` on conversion, or a specific
+     "Converted Time" field if enabled)
+   - **Action 3 & 4:** Google Sheets — Add Row — write `[date, "MQL", <lead count>]`
+     and `[date, "SQL", <contact count>]` into `zoho_funnel_raw` (connect
+     your Google account when prompted)
+3. Test-run the Flow manually once, confirm both rows land correctly in
+   the Sheet
+4. Turn the Flow on / activate the schedule
+
+## 6. Connect the Zoho funnel sheet in Looker Studio
+
+1. Add Data Source > Google Sheets > same Sheet, tab `zoho_funnel_raw`
+2. Set field types: `date` as Date (mark as Date Range Dimension), `count`
+   as Number
+3. This becomes the source for the Overview funnel section
 
 ## Rollback / off switch
 

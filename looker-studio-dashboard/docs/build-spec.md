@@ -43,8 +43,8 @@ no pacing, no kill-criteria columns — this table is board-facing only.
 A funnel chart (or 3 scorecards side by side if funnel chart styling looks
 too sparse with only 3 stages): Raw Leads → MQL → SQL.
 - Raw Leads: Google Ads conversions + `bing_ads_raw` conversions + Zoho CRM Leads (Lead Source = "Direct")
-- MQL: Zoho CRM Leads module (via the Jivrus connector)
-- SQL: Zoho CRM Contacts module (post-conversion)
+- MQL: `zoho_funnel_raw` where stage = "MQL" (synced from Zoho via Zoho Flow)
+- SQL: `zoho_funnel_raw` where stage = "SQL"
 Aggregate only, not filterable by campaign (see sheet-schema.md).
 
 ---
