@@ -29,6 +29,12 @@ for you (or whoever holds the relevant account access) to run directly.
 2. Paste in `scripts/microsoft-ads-export.js`
 3. Set `WEBAPP_URL` to the `/exec` URL from step 2
 4. Set `SHARED_SECRET` to the same string used in step 2
+5. Check `ACTIVE_CAMPAIGNS` at the top of the script — this is a manually
+   maintained list of exact campaign names to export (Microsoft's own
+   status API proved unreliable for this account during testing, so this
+   list is the real filter). **Update it whenever a campaign is paused,
+   ended, or a new one goes live** — otherwise stale/inactive campaigns
+   will silently stop being dropped, or new ones silently won't appear.
 5. Run once manually to verify — check the Sheet gets a `bing_ads_raw` tab
    with rows, and check the script's log for a `200` response
 6. Schedule it to run daily (early morning, after Bing's stats finalize for
