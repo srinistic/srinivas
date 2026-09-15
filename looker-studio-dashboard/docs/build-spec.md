@@ -1,10 +1,35 @@
 # Droidal Marketing Dashboard — build spec (V1)
 
-Apply this directly in Looker Studio. Each page has a report-level **Date
-range control** scoped to it (Insert > Date range control), default set to
-**"This month"**, with a text label component reading `Data: {{start_date}} –
-{{end_date}}` (or a fixed label + the built-in date range display) so the
-filtered window is always visible to the board.
+Apply this directly in Looker Studio.
+
+## Filtering (V1: whole month only)
+
+V1 filtering is deliberately narrow: pick **one whole month at a time** —
+this month, previous month, or any other single month. No custom/partial
+date ranges, no multi-month comparison — that's V2.
+
+Rather than Looker Studio's native Date Range control (which allows
+arbitrary day-level ranges and wouldn't actually enforce "one month only"),
+use a **single-select Dropdown list control** bound to a `Month`
+calculated field, defaulting to the current month:
+
+1. On **every** data source used in the report (Google Ads, GA4,
+   `bing_ads_raw`, `zoho_funnel_raw`), add a calculated field named
+   exactly `Month`:
+   ```
+   FORMAT_DATE("%Y-%m", <that source's date field>)
+   ```
+   (e.g. `2026-09`) — using `%Y-%m` rather than a prettier "Sep 2026" format
+   is deliberate, so the dropdown sorts chronologically instead of
+   alphabetically.
+2. Report level → Insert → **Control** → **Drop-down list**, bind it to
+   `Month`, set **single select**, default value = current month
+   (`2026-09` right now)
+3. Add a text label near it reading `Data: {{Month}}` (or similar) so the
+   selected month is always visible on screen
+4. Because the field name `Month` matches across every source, this one
+   control filters all pages/charts at once — no need to duplicate it per
+   page
 
 ## Global theme
 
@@ -58,14 +83,13 @@ confirmed exactly as they appear in the account).
 
 - Scorecards: Spend, Impressions, Clicks, CTR, Conversions, Cost/Conv, Conv. rate (report-level totals)
 - Table: one row per campaign, same metrics, sortable
-- Time series: daily spend trend for the filtered date range
+- Time series: daily spend trend across the selected month
 
 ## Page 3 — Bing Ads performance
 
-Same layout as Page 2, sourced from `bing_ads_raw` (once the Microsoft Ads
-Script + Apps Script Web App are live — see deployment-steps.md). Same
-metric set, filtered `status = Active`, segmented by the 3 known campaigns
-(Insurance Verification, Voice AI, Claims).
+Same layout as Page 2, sourced from `bing_ads_raw`. Confirmed active
+campaigns (see `ACTIVE_CAMPAIGNS` in `microsoft-ads-export.js`): Insurance
+Verification AI, Claims Processing AI, Voice AI Agent.
 
 ## Page 4 — Organic performance
 
@@ -73,7 +97,7 @@ Data source: GA4 connector (already connected).
 
 - Scorecards: Organic Sessions, Organic Users, Organic Leads (if trackable via GA4 conversion event — confirm event name), Avg. engagement time
 - Table: top landing pages by organic sessions
-- Time series: organic sessions trend for the filtered date range
+- Time series: organic sessions trend across the selected month
 
 ---
 
