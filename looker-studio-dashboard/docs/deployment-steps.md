@@ -91,6 +91,45 @@ does.
    as Number
 3. This becomes the source for the Overview funnel section
 
+## 7. Deploy the Google Ads pipeline (both accounts) — via Scripts, same pattern as Bing
+
+Google Ads' native Looker Studio connector locks `Cost` to "Auto"
+aggregation, which cannot be changed — including inside a blend. This broke
+every attempt to combine it with Bing's data in a blend (see build-spec.md
+for what we tried). Routing Google Ads through Scripts → Sheets, like Bing,
+avoids this permanently.
+
+1. In the same Sheet as `bing_ads_raw`/`zoho_funnel_raw`, a new tab
+   `google_ads_raw` will be created automatically on first write
+2. Deploy a **new, separate** Apps Script Web App (don't reuse Bing's):
+   - Extensions > Apps Script on the Sheet (or a new script project pointing
+     at the same Sheet)
+   - Paste in `scripts/google-ads-apps-script-webapp.gs`
+   - Set `SHEET_ID` (same Sheet as before)
+   - Set `SHARED_SECRET` to a new random string
+   - Deploy > New deployment > Web app > Execute as "Me" > Who has access
+     "Anyone" (not "Anyone within domain" — same gotcha as the Bing setup)
+   - Copy the `/exec` URL
+3. In **Google Ads Account A**: Tools & Settings > Bulk Actions > Scripts >
+   + Script
+   - Paste in `scripts/google-ads-export.js`
+   - Set `WEBAPP_URL` to the `/exec` URL from step 2
+   - Set `SHARED_SECRET` to match
+   - Set `ACCOUNT_LABEL = 'Account A'`
+   - Fill in `ACTIVE_CAMPAIGNS` with this account's exact, currently-active
+     campaign names (check the account's Campaigns tab if unsure)
+   - Run once manually, check the log for a `200` response and check the
+     Sheet for a new `google_ads_raw` tab with rows
+   - Schedule it daily
+4. Repeat step 3 in **Google Ads Account LP** — same script, same
+   `WEBAPP_URL`/`SHARED_SECRET`, but `ACCOUNT_LABEL = 'Account LP'` and that
+   account's own `ACTIVE_CAMPAIGNS` list
+5. Connect `google_ads_raw` in Looker Studio: Add Data Source > Google
+   Sheets > same Sheet > tab `google_ads_raw`. Field types: `date` as Date,
+   `impressions`/`clicks`/`conversions` as Number, `cost` as Currency
+6. Add the `MonthKey` calculated field here too (`FORMAT_DATETIME("%Y-%m", date)`,
+   type Text), same as every other source
+
 ## Rollback / off switch
 
 Nothing here touches your live Bing Ads account beyond reading stats — to

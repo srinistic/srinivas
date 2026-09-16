@@ -10,24 +10,30 @@ date ranges, no multi-month comparison — that's V2.
 
 Rather than Looker Studio's native Date Range control (which allows
 arbitrary day-level ranges and wouldn't actually enforce "one month only"),
-use a **single-select Dropdown list control** bound to a `Month`
-calculated field, defaulting to the current month:
+use a **single-select Dropdown list control** bound to a `MonthKey`
+calculated field, defaulting to the current month. (Named `MonthKey`, not
+`Month` — GA4 and Google Ads both have a *native* system field literally
+called "Month" that shows different, incompatible formats — GA4's is
+month-only with no year, Google Ads' is "Year Month" in its own format —
+so our own field needs a distinct name.)
 
-1. On **every** data source used in the report (Google Ads, GA4,
+1. On **every** data source used in the report (`google_ads_raw`, GA4,
    `bing_ads_raw`, `zoho_funnel_raw`), add a calculated field named
-   exactly `Month`:
+   exactly `MonthKey`:
    ```
-   FORMAT_DATE("%Y-%m", <that source's date field>)
+   FORMAT_DATETIME("%Y-%m", <that source's date field>)
    ```
-   (e.g. `2026-09`) — using `%Y-%m` rather than a prettier "Sep 2026" format
-   is deliberate, so the dropdown sorts chronologically instead of
-   alphabetically.
+   (e.g. `2026-09`) — set the field's Type to **Text** explicitly after
+   saving (Looker Studio can silently convert a date-like string into a
+   compatibility-mode Date type otherwise). Reference the date field by
+   **clicking it from the field picker**, not typing it — typed field names
+   with spaces/special characters can silently fail to parse.
 2. Report level → Insert → **Control** → **Drop-down list**, bind it to
-   `Month`, set **single select**, default value = current month
+   `MonthKey`, set **single select**, default value = current month
    (`2026-09` right now)
-3. Add a text label near it reading `Data: {{Month}}` (or similar) so the
+3. Add a text label near it reading `Data: {{MonthKey}}` (or similar) so the
    selected month is always visible on screen
-4. Because the field name `Month` matches across every source, this one
+4. Because the field name `MonthKey` matches across every source, this one
    control filters all pages/charts at once — no need to duplicate it per
    page
 
@@ -51,8 +57,8 @@ theme so every new page inherits it automatically.
 ## Page 1 — Overview
 
 **Scorecards (row 1):**
-- Total Spend — sum of `Cost` across the blended campaign source
-- Total Leads — sum of leads (from funnel `Raw Lead` stage once connected)
+- Total Spend — sum of `Cost` across the "All Campaigns Blend" (`google_ads_raw` + `bing_ads_raw` — see Blend setup below)
+- Total Leads — sum of leads (from funnel Raw Leads term, see sheet-schema.md)
 - Blended CPL — calculated field: `Total Spend / Total Leads`
 - Total Traffic — GA4 sessions, all channels
 - Organic Traffic — GA4 sessions, channel grouping = Organic Search
@@ -60,14 +66,17 @@ theme so every new page inherits it automatically.
 - AI Traffic — GA4 sessions matching the AI-referral calculated field (see below)
 
 **Master campaign table:**
-Blended source (Google Ads + `bing_ads_raw`), filtered to active/enabled
-campaigns only. Columns: Campaign, Channel, Spend, Leads, CPL. No budget,
-no pacing, no kill-criteria columns — this table is board-facing only.
+`google_ads_raw` + `bing_ads_raw` (both already active-campaign-filtered at
+the script level). Columns: Campaign, Channel, Spend, Leads, CPL. No
+budget, no pacing, no kill-criteria columns — this table is board-facing
+only. Build this as **separate small tables, one per source/account**
+(matching the current live report's existing pattern) rather than one
+unified blended table — see the Blend troubleshooting notes below for why.
 
 **Funnel section:**
 A funnel chart (or 3 scorecards side by side if funnel chart styling looks
 too sparse with only 3 stages): Raw Leads → MQL → SQL.
-- Raw Leads: Google Ads conversions + `bing_ads_raw` conversions + Zoho CRM Leads (Lead Source = "Direct")
+- Raw Leads: `google_ads_raw` conversions + `bing_ads_raw` conversions + Zoho CRM Leads (Lead Source = "Direct")
 - MQL: `zoho_funnel_raw` where stage = "MQL" (synced from Zoho via Zoho Flow)
 - SQL: `zoho_funnel_raw` where stage = "SQL"
 Aggregate only, not filterable by campaign (see sheet-schema.md).
@@ -76,13 +85,12 @@ Aggregate only, not filterable by campaign (see sheet-schema.md).
 
 ## Page 2 — Google Ads performance
 
-Data source: native Google Ads connector, filtered `Campaign status =
-Enabled`, segmented by the 4 known campaigns (Insurance, Prior
-Authorization, Denials Management, Claims Processing — names to be
-confirmed exactly as they appear in the account).
+Data source: `google_ads_raw` (both accounts — not the native Google Ads
+connector, see Blend troubleshooting notes). Filter/segment by `account`
+and `campaign`.
 
 - Scorecards: Spend, Impressions, Clicks, CTR, Conversions, Cost/Conv, Conv. rate (report-level totals)
-- Table: one row per campaign, same metrics, sortable
+- Table: one row per campaign (both accounts), same metrics, sortable
 - Time series: daily spend trend across the selected month
 
 ## Page 3 — Bing Ads performance
@@ -126,6 +134,63 @@ period has 0 leads — use a `CASE WHEN Total Leads = 0 THEN 0 ELSE ... END`
 wrapper.)
 
 ---
+
+## Blend setup: "All Campaigns Blend" (Total Spend / Total Leads / Blended CPL)
+
+Combines `google_ads_raw` + `bing_ads_raw` into the totals used on
+Overview's scorecard row. **Do not add the native Google Ads connector to
+any blend** — see troubleshooting notes below for why.
+
+1. **Resource → Manage blends** → new blend
+2. Table 1: `google_ads_raw` — bring in `Campaign`, `Cost`, `Conversions`
+   as **Metrics** (not Dimensions — double check this explicitly, see notes
+   below), `MonthKey` as a field
+3. Table 2: `bing_ads_raw` — same fields, same Metric/Dimension placement
+4. **Merge operator:** Full outer
+5. **Merge condition:** join on `campaign` (Google) ↔ `campaign` (Bing) —
+   full outer means every campaign from both sources shows up as its own
+   row (names never collide across platforms, so nothing merges together)
+6. **Date range** on each table: set to **Auto**, not a custom fixed range
+   like "Last 28 days" — a fixed range silently excludes older months from
+   ever appearing regardless of what the `MonthKey` dropdown selects
+7. Combined fields (COALESCE handles nulls from the non-matching side of
+   the outer join) — build by **clicking** each field from the picker, not
+   typing it:
+   ```
+   Total Spend = COALESCE(Cost (google_ads_raw),0) + COALESCE(Cost (bing_ads_raw),0)
+   ```
+   Same pattern for a combined Conversions field, and a combined `MonthKey`:
+   ```
+   COALESCE(MonthKey (google_ads_raw), MonthKey (bing_ads_raw))
+   ```
+
+## Blend troubleshooting notes (why the approach above)
+
+Several things went wrong building this, worth recording so they aren't
+re-discovered the hard way:
+
+1. **Never blend the native Google Ads connector.** Its metrics (`Cost`,
+   `Conversions`, etc.) are locked to "Auto" aggregation — this cannot be
+   changed, including inside a blend, and any attempt to combine it with
+   another source (regardless of join key) threw "Unable to aggregate ratio
+   metrics." This is a hard platform limitation, not a config mistake. The
+   fix was routing Google Ads through Scripts → Sheets (`google_ads_raw`),
+   exactly like Bing — plain Sheet numbers have no Auto-lock and blend
+   cleanly.
+2. **Double-check every field lands in Metrics, not Dimensions**, when
+   adding a Sheets source to a blend. This was the actual root cause of a
+   long debugging session: `cost`/`conversions` from a Sheet had been added
+   under "Dimensions" instead of "Metrics" in the blend editor, which
+   silently breaks aggregation for that field. Looker Studio doesn't flag
+   this clearly — check the field's section placement directly.
+3. **Join on `campaign`, not `date`,** if the goal is a per-campaign table
+   (one row per campaign) — a date-based join collapses everything to one
+   row per day instead. Join on `date` only if you specifically need daily
+   granularity and don't need distinct campaign rows out of that same blend.
+4. Each table's own **Date range setting** (Auto vs a fixed window like
+   "Last 28 days") applies *before* the blend — a fixed window silently
+   caps what the blend can ever show, independent of any report-level
+   filter control.
 
 ## Open items before this can be built end-to-end in the UI
 

@@ -20,9 +20,38 @@ Studio can blend them by `date` + `campaign` without per-source special-casing.
 Grain: one row per campaign per day. Re-runs upsert by `date + campaign`, so
 this sheet is safe to backfill or re-trigger without creating duplicates.
 
+## `google_ads_raw` (written by scripts/google-ads-apps-script-webapp.gs)
+
+Google Ads' native Looker Studio connector locks metrics like `Cost` to
+"Auto" aggregation — this can't be changed, even inside a blend, and
+repeatedly broke attempts to combine it with Bing's data (see
+build-spec.md's blend troubleshooting notes). Routing Google Ads through
+the same Script → Sheet pattern as Bing sidesteps this permanently: plain
+Sheet numbers blend cleanly, with no Auto-lock.
+
+`scripts/google-ads-export.js` is deployed **once per Google Ads account**
+(Account A and Account LP), both writing into this same sheet/tab.
+
+| column        | type   | notes                                      |
+|---------------|--------|---------------------------------------------|
+| date          | date   | `YYYY-MM-DD`, stat date                    |
+| account       | text   | `Account A` or `Account LP`                |
+| channel       | text   | always `Google Ads`                        |
+| campaign      | text   | exact Google Ads campaign name             |
+| status        | text   | `Active` (paused campaigns are never sent) |
+| impressions   | number |                                             |
+| clicks        | number |                                             |
+| cost          | number | account currency                           |
+| conversions   | number |                                             |
+| last_updated  | datetime | when this row was last written by the web app |
+
+Grain: one row per campaign per account per day. Upsert key is
+`date + account + campaign` (account included so two accounts can't
+collide even if they ever have identically-named campaigns).
+
 ## Raw Leads (funnel stage 1)
 
-`Raw Leads = Google Ads conversions + bing_ads_raw conversions + Zoho CRM Leads (Lead Source = "Direct")`
+`Raw Leads = google_ads_raw conversions + bing_ads_raw conversions + Zoho CRM Leads (Lead Source = "Direct")`
 
 The organic term comes from Zoho, not GA4: GA4's conversion event fires on
 every form submission including internal test submissions, which would
@@ -62,9 +91,7 @@ Looker Studio reads that Sheet exactly like `bing_ads_raw`.
 
 ## Master campaign table (Overview page)
 
-Built in Looker Studio as a **blended data source**:
-- Google Ads connector (native, already connected) — filtered to `Campaign status = Enabled`
-- `bing_ads_raw` Sheet — filtered to `status = Active`
-
-Joined on `Campaign` (+ `Date` for time filtering), with `Cost`, `Clicks`,
-`Impressions`, `Conversions` summed across both sources per campaign.
+Built in Looker Studio as a **blended data source** combining `google_ads_raw`
+(both accounts) and `bing_ads_raw` — no native Google Ads connector involved
+in this blend, avoiding the Auto-aggregation issue entirely. See
+build-spec.md for the exact blend/join configuration and what didn't work.
